@@ -3,7 +3,8 @@ import os
 import sys
 
 pictoralConversion = {0:'🟦',1:'1️⃣ ',2:'2️⃣ ',3:'3️⃣ ',4:'4️⃣ ',5:'5️⃣ ',6:'6️⃣ ',7:'7️⃣ ',8:'8️⃣ ',9:'9️⃣ '}
-tabCount = 10
+tabCount = 11
+blocksToRemove = 30
 gameRun = True
 
 map = [
@@ -34,11 +35,64 @@ startingBlocks = []
 errorMsg = ""
 
 def start():
+
+    boardNotFilled = True
+    while (boardNotFilled):
+        blocksFilled = 0
+        # Empty Board
+        for block in bigBlocks:
+            for coords in block:
+                    map[coords[0]][coords[1]] = 0
+
+        # Fill Board
+        for block in bigBlocks:
+
+            blockNotFilled = True
+            boardTries = 0
+
+            while blockNotFilled:
+                boardTries += 1
+
+                if boardTries > 5:
+                    break
+                # Empty Block
+                for coords in block:
+                    map[coords[0]][coords[1]] = 0
+
+                # Fill Block
+                possibleValues = [1,2,3,4,5,6,7,8,9]
+                for coords in block:
+
+                    randomValue = random.choice(possibleValues)
+                    timesTried = 0
+                    while(not validate(coords[0],coords[1],randomValue) and timesTried < 15):
+                        randomValue = random.choice(possibleValues)
+                        timesTried += 1
+
+                    if(timesTried < 15):
+                        map[coords[0]][coords[1]] = randomValue
+                        possibleValues.remove(randomValue)
+
+                    if len(possibleValues) == 0:
+                        blockNotFilled = False
+                        blocksFilled +=1
+
+            if boardTries > 5:
+                break
+            elif blocksFilled == 9:
+                boardNotFilled = False
     
-    for i in range(500):
+    # Remove random tiles
+    for i in range(blocksToRemove):
 
-        map[random.randint(0,8)][random.randint(0,8)] = random.randint(1,9)
+        ranX = random.randint(0,8)
+        ranY = random.randint(0,8)
 
+        if (ranX,ranY) not in startingBlocks:
+
+            map[ranX][ranY] = 0
+            startingBlocks.append((ranX,ranY))
+    
 def display():
     os.system('cls')
 
@@ -69,6 +123,9 @@ def userInput():
     print('\t'*tabCount, end= "")
     inputCoords = list(input("Enter a blocks coords to modify it: "))
 
+    if inputCoords == ['q']:
+        sys.exit()
+
     # Validate Coords
     errorMsg=""
     if len(inputCoords) == 2:
@@ -88,7 +145,7 @@ def userInput():
     else:
         errorMsg='missing or extra number'
         return
-    if (int(inputCoords[0])-1,int(inputCoords[1])-1) in startingBlocks:
+    if (int(inputCoords[0])-1,int(inputCoords[1])-1) not in startingBlocks:
 
         errorMsg="Can't modify starting blocks"
         return
@@ -116,18 +173,6 @@ def validate(x,y,value):
     # Row Check
     if value in map[x]:
         return False
-    
-    # Block Check
-    targetBigBlock = 0
-    for j in bigBlocks:
-
-        if((x,y) in j):
-            targetBigBlock = j
-    for i in targetBigBlock:
-        for j in i:
-            if(value == map[i[0]][i[1]]):
-                return False
-
 
     # Col Check
     for row in range(9):
@@ -137,12 +182,56 @@ def validate(x,y,value):
         
    
     return True
+
+def checkWin():
+
+    # Row Check
+    for row in map:
+
+        targetValues = [1,2,3,4,5,6,7,8,9]
+        for value in row:
+            
+            if value in targetValues:
+                targetValues.remove(value)
+        
+        if len(targetValues) != 0:
+            return False
     
+    # Col Check
+    for colVal in range(9):
+
+        targetValues = [1,2,3,4,5,6,7,8,9]
+        for rowVal in range(9):
+            value = map[rowVal][colVal]
+            if value in targetValues:
+                targetValues.remove(value)
+        
+        if len(targetValues) != 0:
+            return False
+    
+    # Big Block Check
+    for block in bigBlocks:
+
+        targetValues = [1,2,3,4,5,6,7,8,9]
+        for coords in block:
+            value = map[coords[0]][coords[1]]
+            if value in targetValues:
+                targetValues.remove(value)
+        
+        if len(targetValues) != 0:
+            return False
+    
+    return True
+
 
 start()
-display()
-#while gameRun:
-    #display()
-    #userInput()
+while gameRun:
+    display()
+    userInput()
+    
+    if checkWin():
+
+        print('\t'*tabCount,"--YOU WIN--")
+        gameRun = False
 
 sys.exit()
